@@ -1,8 +1,19 @@
-from flask import Flask, request, redirect, session, render_template_string
-import os
+USERNAME = "admin"
+PASSWORD = "2020"
 
-app = Flask(__name__)
-app.secret_key = "servwell-secret-key"
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if request.method == "POST":
+        username = request.form.get("username", "").lower()
+        password = request.form.get("password", "")
+
+        if username == USERNAME and password == PASSWORD:
+            session["user"] = username
+            return redirect("/")
+        else:
+            return render_template_string(HTML_LOGIN + "<p style='color:red;'>Invalid login</p>")
+
+    return render_template_string(HTML_LOGIN)
 
 inventory = []
 
