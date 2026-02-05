@@ -1,83 +1,91 @@
-from flask import Flask, render_template_string, request, redirect
+from flask import Flask, request, redirect, session, render_template_string
+import os
 
 app = Flask(__name__)
+app.secret_key = "servwell-secret-key"
+
 inventory = []
 
-HTML = """
+USERNAME = "admin"
+PASSWORD = "2020"
+
+HTML_LOGIN = """
 <!DOCTYPE html>
 <html>
 <head>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ServWell Medicare</title>
-<style>
-body { font-family: Arial; background:#f4f6f8; margin:0; }
-header { background:#2e7d32; color:white; padding:20px; text-align:center; }
-main { padding:20px; }
-section { background:white; padding:15px; margin-bottom:20px; border-radius:8px; }
-input, button { padding:8px; margin:5px; }
-button { background:#2e7d32; color:white; border:none; }
-table { width:100%; border-collapse:collapse; }
-th, td { border:1px solid #ccc; padding:8px; text-align:center; }
-footer { background:#222; color:white; text-align:center; padding:10px; }
-</style>
+<title>Login - ServWell Medicare</title>
 </head>
-<body>
-
-<header>
-<h1>ServWell Medicare</h1>
-<p>Online Pharmacy Inventory System</p>
-</header>
-
-<main>
-<section>
-<h2>Add Medicine</h2>
+<body style="font-family:Arial;text-align:center;margin-top:100px;">
+<h2>ServWell Medicare Login</h2>
 <form method="POST">
-<input name="name" placeholder="Medicine name" required>
-<input name="qty" type="number" placeholder="Quantity" required>
-<input name="price" type="number" placeholder="Price (₦)" required>
-<button type="submit">Add</button>
+<input name="username" placeholder="Username" required><br><br>
+<input name="password" type="password" placeholder="Password" required><br><br>
+<button type="submit">Login</button>
 </form>
-</section>
-
-<section>
-<h2>Inventory</h2>
-<table>
-<tr><th>Name</th><th>Qty</th><th>Price</th></tr>
-{% for med in inventory %}
-<tr>
-<td>{{ med.name }}</td>
-<td>{{ med.qty }}</td>
-<td>{{ med.price }}</td>
-</tr>
-{% endfor %}
-</table>
-</section>
-</main>
-
-<footer>
-<p>Phone: 07066235915</p>
-<p>Thank you for choosing us</p>
-</footer>
-
 </body>
 </html>
 """
 
-@app.route("/", methods=["GET", "POST"])
-def index():
+HTML_HOME = """
+<!DOCTYPE html>
+<html>
+<head>
+<title>ServWell Medicare</title>
+</head>
+<body style="font-family:Arial;">
+<h1>ServWell Medicare</h1>
+<a href="/logout">Logout</a>
+
+<h2>Add Medicine</h2>
+<form method="POST">
+<input name="name" placeholder="Medicine name" required>
+<input name="qty" placeholder="Quantity" required>
+<input name="price" placeholder="Price" required>
+<button type="submit">Add</button>
+</form>
+
+<h2>Inventory</h2>
+<table border="1" cellpadding="10">
+<tr><th>Name</th><th>Qty</th><th>Price</th></tr>
+{% for item in inventory %}
+<tr>
+<td>{{ item.name }}</td>
+<td>{{ item.qty }}</td>
+<td>{{ item.price }}</td>
+</tr>
+{% endfor %}
+</table>
+</body>
+</html>
+"""
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
     if request.method == "POST":
-        name = request.form.get("name")
-        qty = request.form.get("qty")
-        price = request.form.get("price")
+        if request.form["username"] == USERNAME and request.form["password"] == PASSWORD:
+            session["user"] = USERNAME
+            return redirect("/")
+    return render_template_string(HTML_LOGIN)
 
-        if name and qty and price:
-            inventory.append({"name": name, "qty": qty, "price": price})
+@app.route("/logout")
+def logout():
+    session.pop("user", None)
+    return redirect("/login")
 
-        return redirect("/")
+@app.route("/", methods=["GET", "POST"])
+def home():
+    if "user" not in session:
+        return redirect("/login")
 
-    return render_template_string(HTML, inventory=inventory)
+    if request.method == "POST":
+        inventory.append({
+            "name": request.form["name"],
+            "qty": request.form["qty"],
+            "price": request.form["price"]
+        })
 
-import os
+    return render_template_string(HTML_HOME, inventory=inventory)
+
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
